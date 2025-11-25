@@ -732,3 +732,46 @@ async fn test_btree_store_random_keys_and_cursor_delete() {
     run_silex_code(code).await;
 }
 
+#[tokio::test]
+async fn test_u8_to_bytes() {
+    let code = r#"
+        entry test_u8_to_bytes() {
+            // Test basic to_bytes conversion
+            let value: u8 = 69;
+            let data = value.to_bytes();
+            
+            // Should be a single byte
+            if data.len() != 1 {
+                return 1;
+            }
+            
+            // Verify content
+            if data[0] != 69 {
+                return 2;
+            }
+            
+            // Test from_bytes conversion
+            let restored = u8::from_bytes(data);
+            if restored != 69 {
+                return 3;
+            }
+            
+            // Test with min value
+            let min_data = 0u8.to_bytes();
+            if u8::from_bytes(min_data) != 0 {
+                return 4;
+            }
+            
+            // Test with max value
+            let max_data = 255u8.to_bytes();
+            if u8::from_bytes(max_data) != 255 {
+                return 5;
+            }
+            
+            return 0;
+        }
+    "#;
+
+    run_silex_code_expect_success(code).await;
+}
+
