@@ -230,18 +230,14 @@ async fn test_btree_store_seek_first() {
             store.insert(b"c", 3u64);
             
             // Seek to first element (ascending)
-            let result = store.seek(b"", BTreeSeekBias::First, true);
-            if result.is_none() {
+            // seek returns (optional<BTreeCursor>, optional<Entry>)
+            let (cursor, item) = store.seek(b"", BTreeSeekBias::First, true);
+            if item.is_none() {
                 return 1;
             }
             
-            // Unwrap the tuple
-            let tuple = result.unwrap();
-            let cursor = tuple.0;
-            let item = tuple.1;
-            
             // First key should be "a" (lexicographically smallest)
-            if item.key != b"a" {
+            if item.unwrap().key != b"a" {
                 return 2;
             }
             
@@ -263,16 +259,13 @@ async fn test_btree_store_seek_last() {
             store.insert(b"c", 3u64);
             
             // Seek to last element
-            let result = store.seek(b"", BTreeSeekBias::Last, false);
-            if result.is_none() {
+            let (cursor, item) = store.seek(b"", BTreeSeekBias::Last, false);
+            if item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let item = tuple.1;
-            
             // Last key should be "c" (lexicographically largest)
-            if item.key != b"c" {
+            if item.unwrap().key != b"c" {
                 return 2;
             }
             
@@ -293,16 +286,12 @@ async fn test_btree_store_cursor_iteration() {
             store.insert(b"b", 2u64);
             store.insert(b"c", 3u64);
             
-            let result = store.seek(b"", BTreeSeekBias::First, true);
-            if result.is_none() {
+            let (cursor, first_item) = store.seek(b"", BTreeSeekBias::First, true);
+            if first_item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let cursor = tuple.0;
-            let first_item = tuple.1;
-            
-            if first_item.key != b"a" {
+            if first_item.unwrap().key != b"a" {
                 return 2;
             }
             
@@ -352,21 +341,18 @@ async fn test_btree_store_seek_exact() {
             store.insert(b"cherry", 3u64);
             
             // Seek exact match
-            let result = store.seek(b"banana", BTreeSeekBias::Exact, true);
-            if result.is_none() {
+            let (cursor, item) = store.seek(b"banana", BTreeSeekBias::Exact, true);
+            if item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let item = tuple.1;
-            
-            if item.key != b"banana" {
+            if item.unwrap().key != b"banana" {
                 return 2;
             }
             
             // Seek non-existent key (exact) should return None
-            let result2 = store.seek(b"blueberry", BTreeSeekBias::Exact, true);
-            if result2.is_some() {
+            let (cursor2, item2) = store.seek(b"blueberry", BTreeSeekBias::Exact, true);
+            if item2.is_some() {
                 return 3;
             }
             
@@ -388,28 +374,22 @@ async fn test_btree_store_seek_greater_or_equal() {
             store.insert(b"e", 5u64);
             
             // Seek >= "b" should find "c"
-            let result = store.seek(b"b", BTreeSeekBias::GreaterOrEqual, true);
-            if result.is_none() {
+            let (cursor, item) = store.seek(b"b", BTreeSeekBias::GreaterOrEqual, true);
+            if item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let item = tuple.1;
-            
-            if item.key != b"c" {
+            if item.unwrap().key != b"c" {
                 return 2;
             }
             
             // Seek >= "c" should find "c" (exact match)
-            let result2 = store.seek(b"c", BTreeSeekBias::GreaterOrEqual, true);
-            if result2.is_none() {
+            let (cursor2, item2) = store.seek(b"c", BTreeSeekBias::GreaterOrEqual, true);
+            if item2.is_none() {
                 return 3;
             }
             
-            let tuple2 = result2.unwrap();
-            let item2 = tuple2.1;
-            
-            if item2.key != b"c" {
+            if item2.unwrap().key != b"c" {
                 return 4;
             }
             
@@ -467,16 +447,12 @@ async fn test_btree_store_cursor_delete() {
             store.insert(b"c", 3u64);
             
             // Seek to "b"
-            let result = store.seek(b"b", BTreeSeekBias::Exact, true);
-            if result.is_none() {
+            let (cursor, item) = store.seek(b"b", BTreeSeekBias::Exact, true);
+            if item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let cursor = tuple.0;
-            let item = tuple.1;
-            
-            if item.key != b"b" {
+            if item.unwrap().key != b"b" {
                 return 2;
             }
             
@@ -510,9 +486,9 @@ async fn test_btree_store_empty_seek() {
         entry test_btree_empty_seek() {
             let store = BTreeStore::new(b"test");
             
-            // Seek on empty store should return None
-            let result = store.seek(b"any", BTreeSeekBias::First, true);
-            if result.is_some() {
+            // Seek on empty store should return (null, null)
+            let (cursor, item) = store.seek(b"any", BTreeSeekBias::First, true);
+            if item.is_some() {
                 return 1;
             }
             
@@ -607,15 +583,12 @@ async fn test_btree_store_seek_less_or_equal() {
             store.insert(b"e", 5u64);
             
             // Seek <= "d" should find "c"
-            let result = store.seek(b"d", BTreeSeekBias::LessOrEqual, true);
-            if result.is_none() {
+            let (cursor, item) = store.seek(b"d", BTreeSeekBias::LessOrEqual, true);
+            if item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let item = tuple.1;
-            
-            if item.key != b"c" {
+            if item.unwrap().key != b"c" {
                 return 2;
             }
             
@@ -637,17 +610,13 @@ async fn test_btree_store_descending_iteration() {
             store.insert(b"c", 3u64);
             
             // Start from last, iterate descending
-            let result = store.seek(b"", BTreeSeekBias::Last, false);
-            if result.is_none() {
+            let (cursor, item) = store.seek(b"", BTreeSeekBias::Last, false);
+            if item.is_none() {
                 return 1;
             }
             
-            let tuple = result.unwrap();
-            let cursor = tuple.0;
-            let item = tuple.1;
-            
             // First item should be "c" (last in ascending order)
-            if item.key != b"c" {
+            if item.unwrap().key != b"c" {
                 return 2;
             }
             
@@ -714,3 +683,52 @@ async fn test_btree_store_delete_nonexistent() {
 
     run_silex_code_expect_success(code).await;
 }
+
+#[tokio::test]
+async fn test_btree_store_random_keys_and_cursor_delete() {
+    let code = r#"
+        const ZERO = 0u64
+
+        const HELLO_WORLD = "Hello World"
+        const NULL = b''
+
+        entry main() {
+            let entries = [
+                "value 3",
+                "value 1",
+                "value 2",
+                HELLO_WORLD,
+                "value 4"
+            ];
+            
+            let rng = Random::new()
+            let bt = BTreeStore::new("foo".to_bytes())
+            
+            foreach value in entries {
+                bt.insert(rng.next_u64().to_be_bytes(), value);
+            }
+            println("len = " + bt.len())
+            
+            // seek returns (BTreeCursor, optional<Entry>)
+            let (cursor, current) = bt.seek(NULL, BTreeSeekBias::Last, false)
+            while current.is_some() {
+                let v = current.unwrap();
+                println(u64::from_be_bytes(v.key) + ": " + v.value);
+                current = cursor.next();
+            }
+            
+            let (cursor, current) = bt.seek(15163363496330000000u64.to_be_bytes(), BTreeSeekBias::GreaterOrEqual, true)
+            while current.is_some() {
+                let v = current.unwrap();
+                println("DELETE: " + v.value);
+                cursor.delete();
+                current = cursor.next();
+            }
+            
+            return 0
+        }
+    "#;
+
+    run_silex_code(code).await;
+}
+
